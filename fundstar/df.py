@@ -15,7 +15,7 @@ class FundStarDF(DFLoader):
         "CODE",  # 代码
         "NAME",  # 简称
         "MANAGER",  # 基金经理
-        "COMPANY",  # 基金公司
+        "COMPANY",  # 基金公司（缩写）
         "COUNT_5S",  # 5星评级数
         "STAR_SHZQ",  # 上海证券评级
         "STAR_ZSZQ",  # 招商证券评级

@@ -1,5 +1,6 @@
 import pandas as pd
 
+from fundstar.df import FundStarDF
 from utils import logger
 
 
@@ -40,30 +41,33 @@ class PoolPipline:
         2. 按2年收益率排名，取排名前 head2（单位：%）基金
         3. 按1年收益率排名，取排名前 head1（单位：%）基金
         """
-        head3 = 20
-        head2 = 25
-        head1 = 30
+        head3 = 40
+        head2 = 30
+        head1 = 20
 
         from fundrate.df import OpenFundRateDF
         df = OpenFundRateDF().df
 
         # 近3年收益排序
-        df = df.sort_values(by="RATE_3Y", ascending=False)
+        df3 = df[["CODE", "RATE_3Y"]].dropna(subset=["RATE_3Y"])
+        df3 = df3.sort_values(by="RATE_3Y", ascending=False)
         # 取前 head3 %
-        k = int((head3 / 100) * len(df))
-        df3 = df[:k]
+        k = int((head3 / 100) * len(df3))
+        df3 = df3[:k]
 
         # 近2年收益排序
-        df = df.sort_values(by="RATE_2Y", ascending=False)
+        df2 = df[["CODE", "RATE_2Y"]].dropna(subset=["RATE_2Y"])
+        df2 = df2.sort_values(by="RATE_2Y", ascending=False)
         # 取前 head2 %
-        k = int((head2 / 100) * len(df))
-        df2 = df[:k]
+        k = int((head2 / 100) * len(df2))
+        df2 = df2[:k]
 
         # 近1年收益排序
-        df = df.sort_values(by="RATE_1Y", ascending=False)
+        df1 = df[["CODE", "RATE_1Y"]].dropna(subset=["RATE_1Y"])
+        df1 = df1.sort_values(by="RATE_1Y", ascending=False)
         # 取前 head1 %
-        k = int((head1 / 100) * len(df))
-        df1 = df[:k]
+        k = int((head1 / 100) * len(df1))
+        df1 = df1[:k]
 
         # df1, d2, d3 取并集
         df = pd.concat([df1, df2, df3]).drop_duplicates()
@@ -73,37 +77,72 @@ class PoolPipline:
 
     def filter_star(self):
         """按评级过滤。按如下方式过滤：
-        1. 过滤掉1星基金和2星基金
-            判断条件：STAR_SHZQ <= 2 或 STAR_ZSZQ <= 2 或 STAR_JAJX <= 2
+        1. 计算平均分：SATR = (TAR_SHZQ + STAR_ZSZQ + STAR_JAJX) / 3
+        2. 向下取整: STAR = floor(STAR)
+        2. 过滤掉平均分 STAR <= 2 的基金
         """
         from fundstar.df import FundStarDF
-        df = FundStarDF().df
-        df = df[
-            (df["STAR_SHZQ"] > 2) &
-            (df["STAR_ZSZQ"] > 2) &
-            (df["STAR_JAJX"] > 2)
-        ]
-        # self.df 与 df 取交集
+        df = FundStarDF().df[["CODE", "STAR_SHZQ", "STAR_ZSZQ", "STAR_JAJX"]].fillna(0)
+        df["STAR"] = (df["STAR_SHZQ"] + df["STAR_ZSZQ"] + df["STAR_JAJX"]) // 3
+        df = df[df.STAR > 2]
+        # self.df 与 df 按 CODE 取交集
         self.df = self.df[self.df.CODE.isin(df.CODE)]
 
     def filter_company(self):
         """按公司过滤。按如下方式过滤：
-        1. 取管理规模排名前 head (%) 的基金公司
+        1. 公司的年龄 >= age_lb = 5 年
+        2. 管理规模排名前 value_head (%) 的基金公司
+        3. 业绩排名前 rate_head (%) 的基金公司
+            业绩定义如下：公司业绩 = 公司管理的基金近3年的收益率 RATE_3Y 的中位数
         """
-        head = 50
+        age_lb = 5
+        value_head = 60
+        rate_head = 50
+
         from .df import CompanyFundValueDF
-        company = CompanyFundValueDF().df
-        company = company.groupby("COMP", as_index=False).agg({"FUND_VALUE": "max"})
-        company.sort_values(by="FUND_VALUE", ascending=False)
-        k = int((head / 100) * len(company))
-        company_to_exclude = company[k: ].COMP
+        df = CompanyFundValueDF().df
 
+        # 1. 按年龄筛选
+        # 计算公司年龄
+        df['AGE'] = (pd.to_datetime('today') - pd.to_datetime(df['BUILT_DATE'], format='%Y-%m-%d')).dt.days // 365
+        # 筛选年龄 >= age_lb 的基金公司
+        df = df[df.AGE >= age_lb]
+
+        # 2. 按管理规模筛选
+        # 将 UPDATE_DATE 列转换为日期格式（MM-DD）
+        df['DATE'] = pd.to_datetime(df['UPDATE_DATE'], format='%m-%d')
+        # 按 COMP 分组并获取最新日期对应的 FUND_VALUE
+        latest_fund_value = df.sort_values('DATE').groupby('COMP').last().reset_index()
+        # 筛选管理规模前 head % 的基金公司
+        df = latest_fund_value[['COMP', 'FUND_VALUE']].dropna(subset=["FUND_VALUE"])
+        df = df.sort_values(by="FUND_VALUE", ascending=False)
+        k = int((value_head / 100) * len(df))
+        company = df[0: k].COMP
+
+        # 3. 按业绩筛选
+        # TODO: 计算公司的业绩
+        from fundrate.df import OpenFundRateDF
         from fundstar.df import FundStarDF
-        df_star = FundStarDF().df
-        fund_to_exclude = df_star[df_star.COMPANY.isin(company_to_exclude)].CODE
+        df = OpenFundRateDF().df
+        df  = df.merge(FundStarDF().df[["CODE", "COMPANY"]], on="CODE")
+        df = df[["CODE", "RATE_3Y", "COMPANY"]].dropna(subset=["RATE_3Y"])
+        rate = df.groupby("COMPANY", as_index=False).agg({"RATE_3Y": "median"})
+        rate = rate.sort_values(by="RATE_3Y", ascending=False)
+        k = int((rate_head / 100) * len(rate))
+        company = rate[0: k].COMPANY
 
-        # 过滤掉 fund_to_exclude 中的基金
-        self.df = self.df[~self.df.CODE.isin(fund_to_exclude)]
+        # TODO
+
+        # 获取基金公司对应的基金代码
+        from fundstar.df import FundStarDF
+        df = FundStarDF().df
+        fund = df[df.COMPANY.isin(company)].CODE
+
+        # 保存结果
+        self.df = self.df[self.df.CODE.isin(fund)]
+
+        print(len(self.df))
+        exit(0)
 
     def filter_manager(self):
         """按基金经理过滤。满足如下条件：
@@ -147,21 +186,57 @@ class PoolPipline:
 
         self.df = self.df[self.df.CODE.isin(fund_codes)]
 
-    def format_df(self):
+    def format(self):
         """
         基金信息汇总。字段如下：
         - CODE: 基金代码
         - NAME: 基金名称
+        - TYPE: 基金类型
+        - COMMISSION: 手续费
         - MANAGER: 基金经理
         - COMP: 基金公司-简称
-        - VALUE: 基金规模
-        - TYPE: 基金类型
+        - STAR: 综合评级（取中位数）
+        - FUND_VALUE: 基金规模
         - RATE_1Y: 近1年收益率（单位：%）
         - RATE_2Y: 近2年收益率（单位：%）
         - RATE_3Y: 近3年收益率（单位：%）
-        - STAR: 综合评级（取中位数）
-        - COMMISSION: 手续费
         """
+        self._format_by_batch()
+        self._format_by_one()
+
+    def _format_by_batch(self):
+        """
+        基金信息。字段如下：
+        - CODE: 基金代码
+        - NAME: 基金名称
+        - TYPE: 基金类型
+        - COMMISSION: 手续费
+        - MANAGER: 基金经理
+        - COMP: 基金公司-简称
+        - STAR: 综合评级（取中位数）
+        - FUND_VALUE: 基金规模
+        - RATE_1Y: 近1年收益率（单位：%）
+        - RATE_2Y: 近2年收益率（单位：%）
+        - RATE_3Y: 近3年收益率（单位：%）
+        """
+
+        df = self.df[["CODE", "NAME", "TYPE", "COMMITION"]]
+        from fundstar.df import FundStarDF
+        df = df.merge(FundStarDF().df[["CODE", "MANAGER", "COMPANY"]], on="CODE")
+        df.rename(columns={'COMPANY': 'COMP'}, inplace=True)
+        star = FundStarDF().df[["STAR_SHZQ", "STAR_ZSZQ", "STAR_JAJX"]].fillna(0).median(axis=1).astype(int)
+        df["STAR"] = star
+
+        from .df import CompanyFundValueDF
+        df = df.merge(CompanyFundValueDF().df[["COMP", "FUND_VALUE"]], on="COMP")
+
+        from fundrate.df import OpenFundRateDF
+        df = df.merge(OpenFundRateDF().df[["CODE", "RATE_1Y", "RATE_2Y", "RATE_3Y"]], on="CODE")
+
+        self.df = df
+
+    def _format_by_one(self):
+        pass
 
     def process(self):
         # 基金筛选流程
@@ -176,4 +251,6 @@ class PoolPipline:
         self.filter_manager()  # 过滤不满足条件的基金经理（基金）
         logger.info(f"[Filter]: by = '基金经理', count = {len(self.df)}")
         # 基金信息汇总
-        self.format_df()
+        self.format()
+
+        return self

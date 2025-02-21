@@ -3,6 +3,7 @@ import re
 import akshare as ak
 
 from utils.dfloader import DFLoader
+from .pipline import PoolPipline
 
 
 class FundPurchaseDF(DFLoader):
@@ -100,4 +101,15 @@ class CompanyFundValueDF(DFLoader):
         self.df["COMP"] = short_names
 
 
+class FundPoolDF(DFLoader):
 
+    remark = "候选基金池"
+    header = None
+    expire = 30
+
+    def __init__(self):
+        super().__init__(expire=self.expire,
+                         header=self.header)
+
+    def get(self):
+        self.df = PoolPipline().process().df
