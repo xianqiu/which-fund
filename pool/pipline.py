@@ -1,6 +1,6 @@
 import pandas as pd
+import akshare as ak
 
-from fundstar.df import FundStarDF
 from utils import logger
 
 
@@ -177,24 +177,6 @@ class PoolPipline:
 
     def format(self):
         """
-        基金信息汇总。字段如下：
-        - CODE: 基金代码
-        - NAME: 基金名称
-        - TYPE: 基金类型
-        - COMMISSION: 手续费
-        - MANAGER: 基金经理
-        - COMP: 基金公司-简称
-        - STAR: 综合评级（取中位数）
-        - FUND_VALUE: 基金规模
-        - RATE_1Y: 近1年收益率（单位：%）
-        - RATE_2Y: 近2年收益率（单位：%）
-        - RATE_3Y: 近3年收益率（单位：%）
-        """
-        self._format_by_batch()
-        self._format_by_one()
-
-    def _format_by_batch(self):
-        """
         基金信息。字段如下：
         - CODE: 基金代码
         - NAME: 基金名称
@@ -221,11 +203,7 @@ class PoolPipline:
 
         from fundrate.df import OpenFundRateDF
         df = df.merge(OpenFundRateDF().df[["CODE", "RATE_1Y", "RATE_2Y", "RATE_3Y"]], on="CODE")
-
         self.df = df
-
-    def _format_by_one(self):
-        pass
 
     def process(self):
         # 基金筛选流程

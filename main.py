@@ -15,5 +15,3 @@ if __name__ == "__main__":
 
     from utils import DFSummary
     DFSummary(df, ["RATE_3Y", "RATE_2Y", "RATE_1Y"]).summarize()
-
-
