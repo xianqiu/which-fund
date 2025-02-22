@@ -105,7 +105,7 @@ class PoolPipline:
         # 1. 按年龄筛选
         # 计算公司年龄
         df['AGE'] = (pd.to_datetime('today') - pd.to_datetime(df['BUILT_DATE'], format='%Y-%m-%d')).dt.days // 365
-        # 筛选年龄 >= age_lb 的基金公司
+        # 筛选年龄 >= age_lb 的行
         df = df[df.AGE >= age_lb]
 
         # 2. 按管理规模筛选
@@ -117,58 +117,46 @@ class PoolPipline:
         df = latest_fund_value[['COMP', 'FUND_VALUE']].dropna(subset=["FUND_VALUE"])
         df = df.sort_values(by="FUND_VALUE", ascending=False)
         k = int((value_head / 100) * len(df))
-        company = df[0: k].COMP
+        comp = df[0: k].COMP
 
         # 3. 按业绩筛选
-        # TODO: 计算公司的业绩
         from fundrate.df import OpenFundRateDF
         from fundstar.df import FundStarDF
         df = OpenFundRateDF().df
-        df  = df.merge(FundStarDF().df[["CODE", "COMPANY"]], on="CODE")
+        df = df.merge(FundStarDF().df[["CODE", "COMPANY"]], on="CODE")
+        df = df[df.COMPANY.isin(comp)]  # 跟前面两个条件的结果取交集
+        # 计算业绩
         df = df[["CODE", "RATE_3Y", "COMPANY"]].dropna(subset=["RATE_3Y"])
-        rate = df.groupby("COMPANY", as_index=False).agg({"RATE_3Y": "median"})
-        rate = rate.sort_values(by="RATE_3Y", ascending=False)
-        k = int((rate_head / 100) * len(rate))
-        company = rate[0: k].COMPANY
-
-        # TODO
+        df = df.groupby("COMPANY", as_index=False).agg({"RATE_3Y": "median"})
+        df = df.sort_values(by="RATE_3Y", ascending=False)
+        k = int((rate_head / 100) * len(df))
+        comp = df[0: k].COMPANY
 
         # 获取基金公司对应的基金代码
         from fundstar.df import FundStarDF
         df = FundStarDF().df
-        fund = df[df.COMPANY.isin(company)].CODE
-
+        fund = df[df.COMPANY.isin(comp)].CODE
         # 保存结果
         self.df = self.df[self.df.CODE.isin(fund)]
-
-        print(len(self.df))
-        exit(0)
 
     def filter_manager(self):
         """按基金经理过滤。满足如下条件：
         1. 从业时间在 [exp_lb, exp_ub] 之间（单位：年）
-        2. 基金管理规模排名前 value_top （百分比）的基金经理
-        3. 历史最佳业绩前 rate_max_top （百分比）的基金经理
+        2. 历史最佳业绩前 rate_max_top （百分比）的基金经理
         """
         exp_lb = 5
         exp_ub = 20
-        value_top = 60
-        rate_max_top = 80
+        rate_max_top = 50
 
         from fundmgr.df import FundManagerDF
         manager = FundManagerDF().df
-        # 从业时间
+        # 1. 从业时间
         manager = manager[
             (manager["EXP"] >= exp_lb * 365) &
             (manager["EXP"] <= exp_ub * 365)
         ]
-        # 基金管理规模
-        manager_by_value = manager.groupby("NAME", as_index=False).agg({"FUND_VAL": "max"})
-        manager_by_value.sort_values(by="FUND_VAL", ascending=False)
-        k = int((value_top / 100) * len(manager_by_value))
-        manager_by_value = manager_by_value[:k]
-        manager = manager[manager.NAME.isin(manager_by_value.NAME)]
-        # 基金历史最佳业绩
+
+        # 2. 基金历史最佳业绩
         manager_by_rate = manager.groupby("NAME", as_index=False).agg({"RATE_MAX": "max"})
         manager_by_rate.sort_values(by="RATE_MAX", ascending=False)
         k = int((rate_max_top / 100) * len(manager_by_rate))
@@ -176,6 +164,7 @@ class PoolPipline:
         manager = manager[manager.NAME.isin(manager_by_rate.NAME)]
         managers_to_keep = set(manager.NAME.tolist())
 
+        # 获取基金经理对应的基金代码
         from fundstar.df import FundStarDF
         df = FundStarDF().df
         fund_codes = []
