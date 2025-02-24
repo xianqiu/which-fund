@@ -1,12 +1,34 @@
+import time
 
-class Scheduler(object):
+import numpy as np
 
-    def __init__(self, n):
-        """ 把 span 划分成 k
-        :param span: int, 代表总时长, 单位: 秒
-        :param k: 次数
-        """
-        self.time = time
-        self.k = k
+from .logger import logger
 
-    def sleep(self):
+
+class WT(object):
+
+    mean = 1_000  # 单位: 毫秒
+    std = 500
+    lb = 200  # 单位: 毫秒
+    ub = 10_000  # 单位: 毫秒
+    rho = 3
+
+    @classmethod
+    def _wait_time(cls):
+        # 单位: 毫秒
+        mean = np.random.uniform(cls.mean, cls.rho * cls.std)
+        std = np.random.uniform(cls.std, cls.rho * cls.std)
+        wait_time = np.random.normal(mean, std)
+
+        if wait_time < cls.lb:
+            wait_time = cls.lb
+        if wait_time > cls.ub:
+            wait_time = cls.ub
+
+        return wait_time
+
+    @classmethod
+    def wait(cls):
+        wait_time = cls._wait_time()  # 单位:毫秒
+        logger.info(f"[WAIT] {wait_time:.2f} ms ...")
+        time.sleep(wait_time / 1000)

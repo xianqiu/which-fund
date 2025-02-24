@@ -37,9 +37,9 @@ class PoolPipline:
 
     def filter_rate(self):
         """ 按收益率过滤。按如下方式过滤：
-        1. 按3年收益率排名，取排名前 head3（单位：%）基金
-        2. 按2年收益率排名，取排名前 head2（单位：%）基金
-        3. 按1年收益率排名，取排名前 head1（单位：%）基金
+        1. 按3年收益率排名, 取排名前 head3 (单位：%) 基金
+        2. 按2年收益率排名, 取排名前 head2 (单位：%) 基金
+        3. 按1年收益率排名, 取排名前 head1 (单位：%) 基金
         """
         head3 = 40
         head2 = 30
@@ -186,9 +186,9 @@ class PoolPipline:
         - COMP: 基金公司-简称
         - STAR: 综合评级（取中位数）
         - FUND_VALUE: 基金规模
-        - RATE_1Y: 近1年收益率（单位：%）
-        - RATE_2Y: 近2年收益率（单位：%）
-        - RATE_3Y: 近3年收益率（单位：%）
+        - RATE_1Y: 近1年收益率 (单位：%)
+        - RATE_2Y: 近2年收益率 (单位：%)
+        - RATE_3Y: 近3年收益率 (单位：%)
         """
 
         df = self.df[["CODE", "NAME", "TYPE", "COMMITION"]]

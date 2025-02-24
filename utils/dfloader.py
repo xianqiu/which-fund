@@ -78,7 +78,7 @@ class DFLoader:
     def save(self):
         """保存数据
         """
-        if self.df is None:
+        if self.df is None or self.df.empty:
             logger.info("[Get]: FAIL")
             return
         # 文件名为 class 名称 + 日期
