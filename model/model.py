@@ -118,7 +118,7 @@ class SimpleFundModel(object):
 
         print(f"|-- 基金列表")
         for _, row in self.fund.iterrows():
-            print(f"|-- [{row.CODE}][{row.NAME}][{row.MANAGER}]"
+            print(f"|-- [{row.CODE:06}][{row.NAME}][{row.MANAGER}]"
                   f"[{row.COMPANY}][{row.TYPE}]"
                   f"[手续费 {row.COMMISSION:.2f}%][五星评级数:{row.COUNT_5S}]")
 
