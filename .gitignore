@@ -1,4 +1,14 @@
 # PyCharm
 .idea/
-/data/
 /__pycache__/
+
+# python
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+
+# project
+/data/
