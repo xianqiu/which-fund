@@ -110,17 +110,16 @@ class SimpleFundModel(object):
         print(f"==== Summary ====")
         print(f"|-- 投资预算 = {self.budget} 万元")
         print(f"|-- 预期收益率 =  {rate_exp:.2f}%,  预期收益 = {profit_exp:.2f} 万元")
-        print(f"|-- 基金数量 = {self.budget / self.unit}")
+        print(f"|-- 基金数量 = {int(self.budget / self.unit)}")
 
         type_count = self.fund.groupby("TYPE").size().reset_index(name="COUNT")
         for _, row in type_count.iterrows():
-            print(f"|-- [{row.TYPE}]: 数量 = int({row.COUNT})")
+            print(f"|-- [{row.TYPE}]: 数量 = {int(row.COUNT)}")
 
         print(f"|-- 基金列表")
         for _, row in self.fund.iterrows():
-            print(f"|-- [{row.CODE:06}][{row.NAME}][{row.MANAGER}]"
-                  f"[{row.COMPANY}][{row.TYPE}]"
-                  f"[手续费 {row.COMMISSION:.2f}%][五星评级数:{row.COUNT_5S}]")
+            print(f"|-- [{row.CODE:06}][{row.NAME}][{row.MANAGER}][{row.TYPE}]"
+                  f"[手续费: {row.COMMISSION:.2f}%][五星评级数: {row.COUNT_5S}]")
 
     def run(self):
         budget = self.get_type_budget()

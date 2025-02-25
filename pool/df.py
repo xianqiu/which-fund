@@ -113,3 +113,5 @@ class FundPoolDF(DFLoader):
 
     def get(self):
         self.df = PoolPipline().process().df
+        # 去重
+        self.df = self.df.drop_duplicates(subset=["CODE"])
