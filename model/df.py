@@ -13,8 +13,9 @@ class FundParamDF(DFLoader):
         "VALUE",  # 基金规模
         "RATE",  # 平均收益率
         "PROFIT",  # 平均利润
+        "COMMISSION",  # 手续费(单位:%)
     ]
-    expire = 1
+    expire = 0
 
     def __init__(self):
         super().__init__(expire=self.expire,
@@ -25,7 +26,7 @@ class FundParamDF(DFLoader):
         df["RATE"] = (df.RATE_1Y + df.RATE_2Y + df.RATE_3Y) / 3
         df["PROFIT"] = df.FUND_VALUE * df.RATE / 100
         df["VALUE"] = df.FUND_VALUE
-        self.df = df[["CODE", "TYPE", "VALUE", "RATE", "PROFIT"]]
+        self.df = df[["CODE", "TYPE", "VALUE", "RATE", "PROFIT", "COMMISSION"]]
 
 
 class FundTypeParamDF(DFLoader):

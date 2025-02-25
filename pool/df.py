@@ -26,7 +26,7 @@ class FundPurchaseDF(DFLoader):
         "OPEN_DATE_SELL",  # 下一个赎回开放日期
         "BUY_MIN",  # 单次申购最低金额 (单位: 元)
         "BUY_MAX_D",  # 单日累计申购最高金额 (单位: 元)
-        "COMMITION",  # 手续费 (单位: %)
+        "COMMISSION",  # 手续费 (单位: %)
     ]
 
     expire = 30

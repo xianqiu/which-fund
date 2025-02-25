@@ -32,7 +32,7 @@ class PoolPipline:
             (df["STATUS_SELL"] == "开放赎回") &
             (df["BUY_MIN"] <= buy_lb) &
             (df["BUY_MAX_D"] >= buy_d_ub) &
-            (df["COMMITION"] <= com_lb)
+            (df["COMMISSION"] <= com_lb)
         ]
 
     def filter_rate(self):
@@ -191,7 +191,7 @@ class PoolPipline:
         - RATE_3Y: 近3年收益率 (单位：%)
         """
 
-        df = self.df[["CODE", "NAME", "TYPE", "COMMITION"]]
+        df = self.df[["CODE", "NAME", "TYPE", "COMMISSION"]]
         from fundstar.df import FundStarDF
         df = df.merge(FundStarDF().df[["CODE", "MANAGER", "COMPANY"]], on="CODE")
         df.rename(columns={'COMPANY': 'COMP'}, inplace=True)
